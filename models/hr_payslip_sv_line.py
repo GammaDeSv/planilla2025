@@ -1,4 +1,5 @@
 from odoo import models, fields, api
+from datetime import datetime, timedelta
 
 class HrPayslipSVLine(models.Model):
     _name = 'hr.payslip.sv.line'
@@ -59,7 +60,6 @@ class HrPayslipSVLine(models.Model):
 
     observaciones = fields.Text(string='Observaciones')
 
-    # Cálculos
     @api.depends('wage')
     def _compute_salarios(self):
         for rec in self:
@@ -108,4 +108,27 @@ class HrPayslipSVLine(models.Model):
     def _compute_neto_pagar(self):
         for rec in self:
             rec.neto_pagar = rec.total_ingresos - rec.total_descuentos
+
+    def calcular_asistencia(self, date_start, date_end):
+        for rec in self:
+            attendances = rec.env['hr.attendance'].search([
+                ('employee_id', '=', rec.employee_id.id),
+                ('check_in', '>=', date_start),
+                ('check_out', '<=', date_end),
+            ])
+
+            dias_set = set()
+            horas_total = 0.0
+
+            for att in attendances:
+                check_in = att.check_in
+                check_out = att.check_out
+                if check_in and check_out:
+                    delta = check_out - check_in
+                    horas = delta.total_seconds() / 3600.0
+                    horas_total += horas
+                    dias_set.add(check_in.date())
+
+            rec.dias_laborados = len(dias_set)
+            rec.horas_trabajadas = round(horas_total, 2)
 

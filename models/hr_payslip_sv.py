@@ -44,11 +44,12 @@ class HrPayslipSV(models.Model):
         for emp in empleados:
             contrato = emp.contract_id
             if contrato and contrato.wage:
-                self.env['hr.payslip.sv.line'].create({
+                linea = self.env['hr.payslip.sv.line'].create({
                     'payslip_id': self.id,
                     'employee_id': emp.id,
                     'wage': contrato.wage,
                 })
+                linea.calcular_asistencia(self.date_start, self.date_end)
 
     def action_marcar_finalizado(self):
         for rec in self:
